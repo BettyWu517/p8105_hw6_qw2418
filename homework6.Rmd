@@ -8,9 +8,82 @@ output: github_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(boot)
+library(ggplot2)
 ```
 
 ## Problem 1
+In the data cleaning code below we create a `city_state` variable, change `victim_age` to numeric, modifiy victim_race to have categories white and non-white, with white as the reference category, and create a `resolution` variable indicating whether the homicide is solved. Lastly, we filtered out the following cities: Tulsa, AL; Dallas, TX; Phoenix, AZ; and Kansas City, MO; and we retained only the variables `city_state`, `resolution`, `victim_age`, `victim_sex`, and `victim_race`.
+
+```{r q1_data_cleaning}
+homicide_df = 
+  read_csv("data/homicide-data.csv", na = c("", "NA", "Unknown")) |> 
+  mutate(
+    city_state = str_c(city, state, sep = ", "),
+    victim_age = as.numeric(victim_age),
+    resolution = case_when(
+      disposition == "Closed without arrest" ~ 0,
+      disposition == "Open/No arrest"        ~ 0,
+      disposition == "Closed by arrest"      ~ 1)
+  ) |> 
+  filter(victim_race %in% c("White", "Black")) |> 
+  filter(!(city_state %in% c("Tulsa, AL", "Dallas, TX", "Phoenix, AZ", "Kansas City, MO"))) |> 
+  select(city_state, resolution, victim_age, victim_sex, victim_race)
+```
+
+Next we fit a logistic regression model using only data from Baltimore, MD. We model `resolved` as the outcome and `victim_age`, `victim_sex`, and `victim_race` as predictors. We save the output as `baltimore_glm` so that we can apply `broom::tidy` to this object and obtain the estimate and confidence interval of the adjusted odds ratio for solving homicides comparing non-white victims to white victims.
+
+```{r q1_glm_baltimore}
+baltimore_glm = 
+  filter(homicide_df, city_state == "Baltimore, MD") |> 
+  glm(resolution ~ victim_age + victim_sex + victim_race, family = binomial(), data = _)
+
+baltimore_glm |> 
+  broom::tidy() |> 
+  mutate(
+    OR = exp(estimate), 
+    OR_CI_upper = exp(estimate + 1.96 * std.error),
+    OR_CI_lower = exp(estimate - 1.96 * std.error)) |> 
+  filter(term == "victim_sexMale") |> 
+  select(OR, OR_CI_lower, OR_CI_upper) |>
+  knitr::kable(digits = 3)
+```
+
+Below, by incorporating `nest()`, `map()`, and `unnest()` into the preceding Baltimore-specific code, we fit a model for each of the cities, and extract the adjusted odds ratio (and CI) for solving homicides comparing non-white victims to white victims. We show the first 5 rows of the resulting dataframe of model results.
+
+```{r q1_glm_all_cities}
+model_results = 
+  homicide_df |> 
+  nest(data = -city_state) |> 
+  mutate(
+    models = map(data, \(df) glm(resolution ~ victim_age + victim_sex + victim_race, 
+                             family = binomial(), data = df)),
+    tidy_models = map(models, broom::tidy)) |> 
+  select(-models, -data) |> 
+  unnest(cols = tidy_models) |> 
+  mutate(
+    OR = exp(estimate), 
+    OR_CI_upper = exp(estimate + 1.96 * std.error),
+    OR_CI_lower = exp(estimate - 1.96 * std.error)) |> 
+  filter(term == "victim_sexMale") |> 
+  select(city_state, OR, OR_CI_lower, OR_CI_upper)
+
+model_results |>
+  slice(1:5) |> 
+  knitr::kable(digits = 3)
+```
+
+Below we generate a plot of the estimated ORs and CIs for each city, ordered by magnitude of the OR from smallest to largest. From this plot we see that most cities have odds ratios that are smaller than 1, suggesting that crimes with male victims have smaller odds of resolution compared to crimes with female victims after adjusting for victim age and race. This disparity is strongest in New yrok. In roughly half of these cities, confidence intervals are narrow and do not contain 1, suggesting a significant difference in resolution rates by sex after adjustment for victim age and race. 
+
+```{r q1_plot}
+model_results |> 
+  mutate(city_state = fct_reorder(city_state, OR)) |> 
+  ggplot(aes(x = city_state, y = OR)) + 
+  geom_point() + 
+  geom_errorbar(aes(ymin = OR_CI_lower, ymax = OR_CI_upper)) + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
 
 ## Problem 2
 
@@ -28,6 +101,120 @@ weather_df =
   select(name, id, everything())
 
 ```
+
+
+
+```{r}
+
+bootsample <- function(data) {
+  sample_frac(data, replace = TRUE)
+}
+
+## Draw 5000 samples
+boot_straps = tibble(strap_number = 1:5000) |>
+  mutate(strap_sample = map(strap_number, \(i) bootsample(weather_df)))
+
+## perform the bootstrap
+bootstrap_results = boot_straps |> 
+  mutate(models = map(strap_sample, \(df) lm(tmax ~ tmin + prcp, data = df)),
+         results = map(models, broom::tidy),
+         r_square = map_dbl(models, \(model) summary(model)$r.squared)) |>
+  select(strap_number, r_square, results) |>
+  unnest(results)
+```
+
+
+```{r}
+## Generate the result
+results = bootstrap_results |>
+  group_by(term) |>
+  select(strap_number, term, estimate, r_square) |>
+  pivot_wider(names_from = term, values_from = estimate) |>
+  mutate (log_product = log(tmin * prcp)) 
+
+results 
+```
+
+### Plots of the distributions
+```{r}
+## Plot the result of rsquare
+results |> ggplot(aes(x = r_square)) + 
+  geom_density(fill = "blue", alpha = 0.5) +
+  xlab ("R square") +
+  ylab ("Density") + 
+  ggtitle("Density Plot of R squared Values from Bootstrap Results")
+ggsave("Density Plot of R squared Values from Bootstrap Results.jpg")
+  
+
+## Plot the result of tmin
+results |> ggplot(aes(x = tmin)) + 
+  geom_density(fill = "red", alpha = 0.5) +
+  xlab ("tmin") +
+  ylab ("Density") + 
+  ggtitle("Density Plot of tmin Values from Bootstrap Results")
+ggsave("Density Plot of tmin Values from Bootstrap Results.jpg")
+
+## Plot the result of prcp
+results |> ggplot(aes(x = prcp)) + 
+  geom_density(fill = "green", alpha = 0.5) +
+  xlab ("prcp") +
+  ylab ("Density") + 
+  ggtitle("Density Plot of prcp Values from Bootstrap Results")
+ggsave("Density Plot of prcp Values from Bootstrap Results.jpg")
+
+## Plot the result of Log(b1*b2)
+results |> ggplot(aes(x = log_product)) + 
+  geom_density(fill = "pink", alpha = 0.5) +
+  xlab ("Log(b1*b2)") +
+  ylab ("Density") + 
+  ggtitle("Density Plot of Log(b1*b2) from Bootstrap Results")
+ggsave("Density Plot of prcp Values from Bootstrap Results.jpg")
+```
+`Distribution of r square` is in the blue density plot. This distribution is unimodal centered between 0.9 and 0.925. It is approximately normal with symmetric tails.
+
+`Distribution of tmin` is in the red density plot. It is also a unimodal distribution. Its center is at approximately 1.02. This distribution is approximately symmetric. 
+
+`Distribution of prcp` is in the green density plot. It is a bimodal distribution with two peaks: one is approximately at -0.005, and the other is approximately at 0.00. These two peaks are very close to each other. 
+
+`Distribution of Log(beta1*beta2)` is in the pink density plot. It is a left skewed distribution with a long tail on the left. The center of this distribution is between -5 and -6. 
+
+
+
+### The percentage of NA values in Log(beta1*beta2)
+
+```{r}
+num_na_logprod <- sum(is.na(results$log_product))
+
+total_observations <- nrow(results)
+
+# Calculate the percentage of NA values
+percentage_na_log_product <- (num_na_logprod / total_observations) 
+percentage_na_log_product
+```
+
+The percentage of NA in the log(beta1*beta2) is 0.672.
+
+### Identify the Confidence Interval:
+```{r}
+## Confidence interval for log(b1*b2)
+results |>
+  summarize(
+    log_lower = quantile(log_product, 0.025, na.rm = TRUE),
+    log_upper = quantile(log_product, 0.975, na.rm = TRUE)
+  )
+
+# Confidence Interval for r_squared
+results |> 
+  summarize(
+    r_squared_lower = quantile(r_square, 0.025, na.rm = TRUE),
+    r_squared_upper = quantile(r_square, 0.975, na.rm = TRUE)
+  )
+
+```
+The 95% confidence interval for log(beta1*beta2) is (-9.055, -4.536). The 95% confidence interval for r square is (0.888, 0.940).
+
+
+
 
 ## Problem 3
 
