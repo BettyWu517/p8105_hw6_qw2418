@@ -30,15 +30,6 @@ homicide_df =
   select(city_state, resolution, victim_age, victim_sex, victim_race)
 ```
 
-    ## Rows: 52179 Columns: 12
-    ## ── Column specification ────────────────────────────────────────────────────────
-    ## Delimiter: ","
-    ## chr (8): uid, victim_last, victim_first, victim_race, victim_sex, city, stat...
-    ## dbl (4): reported_date, victim_age, lat, lon
-    ## 
-    ## ℹ Use `spec()` to retrieve the full column specification for this data.
-    ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
 Next we fit a logistic regression model using only data from Baltimore,
 MD. We model `resolved` as the outcome and `victim_age`, `victim_sex`,
 and `victim_race` as predictors. We save the output as `baltimore_glm`
@@ -139,12 +130,6 @@ weather_df =
   select(name, id, everything())
 ```
 
-    ## using cached file: /Users/BettyWu/Library/Caches/org.R-project.R/R/rnoaa/noaa_ghcnd/USW00094728.dly
-
-    ## date created (size, mb): 2023-10-01 12:59:26.990129 (8.525)
-
-    ## file min/max dates: 1869-01-01 / 2023-09-30
-
 ``` r
 bootsample <- function(data) {
   sample_frac(data, replace = TRUE)
@@ -170,30 +155,23 @@ results = bootstrap_results |>
   select(strap_number, term, estimate, r_square) |>
   pivot_wider(names_from = term, values_from = estimate) |>
   mutate (log_product = log(tmin * prcp)) 
-```
 
-    ## Warning: There was 1 warning in `mutate()`.
-    ## ℹ In argument: `log_product = log(tmin * prcp)`.
-    ## Caused by warning in `log()`:
-    ## ! NaNs produced
-
-``` r
 results 
 ```
 
     ## # A tibble: 5,000 × 6
     ##    strap_number r_square `(Intercept)`  tmin       prcp log_product
     ##           <int>    <dbl>         <dbl> <dbl>      <dbl>       <dbl>
-    ##  1            1    0.907          8.00 1.01   0.00379         -5.57
-    ##  2            2    0.911          8.08 1.00  -0.000923       NaN   
-    ##  3            3    0.927          8.14 1.00   0.000507        -7.58
-    ##  4            4    0.936          8.30 1.02  -0.00513        NaN   
-    ##  5            5    0.895          8.42 0.991 -0.000224       NaN   
-    ##  6            6    0.917          8.01 1.02  -0.00807        NaN   
-    ##  7            7    0.923          7.83 1.01   0.0000520       -9.85
-    ##  8            8    0.915          7.80 1.02   0.00138         -6.57
-    ##  9            9    0.944          7.78 1.04  -0.00437        NaN   
-    ## 10           10    0.906          8.63 1.00  -0.00317        NaN   
+    ##  1            1    0.907          8.05  1.01 -0.00194        NaN   
+    ##  2            2    0.926          8.25  1.01 -0.00709        NaN   
+    ##  3            3    0.921          8.01  1.02 -0.00437        NaN   
+    ##  4            4    0.917          8.22  1.01  0.00238         -6.03
+    ##  5            5    0.906          8.00  1.01  0.00492         -5.30
+    ##  6            6    0.922          7.96  1.02 -0.0000308      NaN   
+    ##  7            7    0.912          8.16  1.01 -0.00260        NaN   
+    ##  8            8    0.910          8.13  1.03 -0.00761        NaN   
+    ##  9            9    0.933          7.51  1.05 -0.00554        NaN   
+    ## 10           10    0.914          8.16  1.01 -0.00113        NaN   
     ## # ℹ 4,990 more rows
 
 ### Plots of the distributions
@@ -211,11 +189,8 @@ results |> ggplot(aes(x = r_square)) +
 
 ``` r
 ggsave("Density Plot of R squared Values from Bootstrap Results.jpg")
-```
+  
 
-    ## Saving 7 x 5 in image
-
-``` r
 ## Plot the result of tmin
 results |> ggplot(aes(x = tmin)) + 
   geom_density(fill = "red", alpha = 0.5) +
@@ -228,11 +203,7 @@ results |> ggplot(aes(x = tmin)) +
 
 ``` r
 ggsave("Density Plot of tmin Values from Bootstrap Results.jpg")
-```
 
-    ## Saving 7 x 5 in image
-
-``` r
 ## Plot the result of prcp
 results |> ggplot(aes(x = prcp)) + 
   geom_density(fill = "green", alpha = 0.5) +
@@ -245,11 +216,7 @@ results |> ggplot(aes(x = prcp)) +
 
 ``` r
 ggsave("Density Plot of prcp Values from Bootstrap Results.jpg")
-```
 
-    ## Saving 7 x 5 in image
-
-``` r
 ## Plot the result of Log(b1*b2)
 results |> ggplot(aes(x = log_product)) + 
   geom_density(fill = "pink", alpha = 0.5) +
@@ -258,17 +225,11 @@ results |> ggplot(aes(x = log_product)) +
   ggtitle("Density Plot of Log(b1*b2) from Bootstrap Results")
 ```
 
-    ## Warning: Removed 3376 rows containing non-finite values (`stat_density()`).
-
 ![](homework6_files/figure-gfm/unnamed-chunk-4-4.png)<!-- -->
 
 ``` r
 ggsave("Density Plot of prcp Values from Bootstrap Results.jpg")
 ```
-
-    ## Saving 7 x 5 in image
-
-    ## Warning: Removed 3376 rows containing non-finite values (`stat_density()`).
 
 `Distribution of r square` is in the blue density plot. This
 distribution is unimodal centered between 0.9 and 0.925. It is
@@ -299,7 +260,7 @@ percentage_na_log_product <- (num_na_logprod / total_observations)
 percentage_na_log_product
 ```
 
-    ## [1] 0.6752
+    ## [1] 0.6612
 
 The percentage of NA in the log(beta1\*beta2) is 0.672.
 
@@ -317,7 +278,7 @@ results |>
     ## # A tibble: 1 × 2
     ##   log_lower log_upper
     ##       <dbl>     <dbl>
-    ## 1     -8.97     -4.55
+    ## 1     -8.85     -4.50
 
 ``` r
 # Confidence Interval for r_squared
@@ -331,9 +292,217 @@ results |>
     ## # A tibble: 1 × 2
     ##   r_squared_lower r_squared_upper
     ##             <dbl>           <dbl>
-    ## 1           0.889           0.941
+    ## 1           0.889           0.940
 
 The 95% confidence interval for log(beta1\*beta2) is (-9.055, -4.536).
 The 95% confidence interval for r square is (0.888, 0.940).
 
 ## Problem 3
+
+### Load and clean data
+
+``` r
+data <- read_csv('data/birthweight.csv', na = c("", "NA", "Unknown"))
+data <- data |>
+  mutate(babysex = recode(babysex, "1" = "male", "2" = "female"),
+         frace = recode(frace, "1" = "White", "2" = "Black", "3" = "Asian", 
+                        "4" = "Puerto Rico", "8" = "Others", "9" = "Unknown"),
+         malform = recode(malform, "0" = "absent", "1" = "present"),
+         mrace = recode(mrace,"1" = "White", "2" = "Black", "3" = "Asian", 
+                        "4" = "Puerto Rico", "8" = "Others")
+         )
+head(data)
+```
+
+    ## # A tibble: 6 × 20
+    ##   babysex bhead blength   bwt delwt fincome frace gaweeks malform menarche
+    ##   <chr>   <dbl>   <dbl> <dbl> <dbl>   <dbl> <chr>   <dbl> <chr>      <dbl>
+    ## 1 female     34      51  3629   177      35 White    39.9 absent        13
+    ## 2 male       34      48  3062   156      65 Black    25.9 absent        14
+    ## 3 female     36      50  3345   148      85 White    39.9 absent        12
+    ## 4 male       34      52  3062   157      55 White    40   absent        14
+    ## 5 female     34      52  3374   156       5 White    41.6 absent        13
+    ## 6 male       33      52  3374   129      55 White    40.7 absent        12
+    ## # ℹ 10 more variables: mheight <dbl>, momage <dbl>, mrace <chr>, parity <dbl>,
+    ## #   pnumlbw <dbl>, pnumsga <dbl>, ppbmi <dbl>, ppwt <dbl>, smoken <dbl>,
+    ## #   wtgain <dbl>
+
+Propose a regression model for birthweight. This model may be based on a
+hypothesized structure for the factors that underly birthweight, on a
+data-driven model-building process, or a combination of the two.
+Describe your modeling process and show a plot of model residuals
+against fitted values – use add_predictions and add_residuals in making
+this plot.
+
+``` r
+model <- lm(bwt ~ babysex + blength + delwt + fincome + frace + gaweeks + malform + menarche + mheight + momage + mrace + parity + pnumlbw + pnumsga + ppbmi + ppwt + smoken + wtgain, data = data)
+
+summary(model)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = bwt ~ babysex + blength + delwt + fincome + frace + 
+    ##     gaweeks + malform + menarche + mheight + momage + mrace + 
+    ##     parity + pnumlbw + pnumsga + ppbmi + ppwt + smoken + wtgain, 
+    ##     data = data)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -1654.4  -205.7    -6.7   198.6  3693.9 
+    ## 
+    ## Coefficients: (3 not defined because of singularities)
+    ##                    Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)      -5224.3675   760.1179  -6.873 7.18e-12 ***
+    ## babysexmale         20.3313     9.6545   2.106  0.03527 *  
+    ## blength            115.1962     1.9850  58.032  < 2e-16 ***
+    ## delwt                5.3504     0.4541  11.784  < 2e-16 ***
+    ## fincome              0.5286     0.2071   2.553  0.01073 *  
+    ## fraceBlack          -3.4188    90.9805  -0.038  0.97003    
+    ## fraceOthers         50.6525   112.6099   0.450  0.65287    
+    ## fracePuerto Rico   -60.5883    90.5582  -0.669  0.50350    
+    ## fraceWhite          17.9172    79.9631   0.224  0.82271    
+    ## gaweeks             22.8559     1.6557  13.805  < 2e-16 ***
+    ## malformpresent      30.0408    81.5045   0.369  0.71246    
+    ## menarche            -1.5596     3.3406  -0.467  0.64062    
+    ## mheight             20.9248    11.8954   1.759  0.07864 .  
+    ## momage               1.1697     1.4104   0.829  0.40697    
+    ## mraceBlack         -96.4075    93.4186  -1.032  0.30213    
+    ## mracePuerto Rico    53.6760    93.4175   0.575  0.56560    
+    ## mraceWhite          51.7697    82.9903   0.624  0.53279    
+    ## parity             124.2871    46.7075   2.661  0.00782 ** 
+    ## pnumlbw                  NA         NA      NA       NA    
+    ## pnumsga                  NA         NA      NA       NA    
+    ## ppbmi               21.0744    17.1780   1.227  0.21995    
+    ## ppwt                -6.9450     3.0127  -2.305  0.02120 *  
+    ## smoken              -6.3579     0.6759  -9.406  < 2e-16 ***
+    ## wtgain                   NA         NA      NA       NA    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 314.5 on 4321 degrees of freedom
+    ## Multiple R-squared:  0.6248, Adjusted R-squared:  0.623 
+    ## F-statistic: 359.7 on 20 and 4321 DF,  p-value: < 2.2e-16
+
+``` r
+data |>
+  add_predictions(model) |>
+  add_residuals(model) |>
+  ggplot(aes(x = pred, y = resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "blue") +
+  labs(x = "Fitted Values", y = "Residuals", title = "Residuals vs Fitted Plot for Birthweight Model")
+```
+
+![](homework6_files/figure-gfm/unnamed-chunk-8-1.png)<!-- --> According
+to the model summary, we can see that a few factors are significant with
+p value less than 0.05, such as smoken, parity, ppwt, and gaweek.
+However, there are also a lot of variables that are non significant with
+p value greater than 0.05, such as frace, malform, menarche, mheight,
+momage, mrace, ppbmi. There are also some factors producing NA values,
+such as wtgain, pnumlbw, and pnumsga. The very small p-value here
+suggests that the model is statistically significant.
+
+``` r
+set.seed(123)
+# Model 1: Length at birth and gestational age
+model1 <- lm(bwt ~ blength + gaweeks, data = data)
+summary(model1)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = bwt ~ blength + gaweeks, data = data)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -1709.6  -215.4   -11.4   208.2  4188.8 
+    ## 
+    ## Coefficients:
+    ##              Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept) -4347.667     97.958  -44.38   <2e-16 ***
+    ## blength       128.556      1.990   64.60   <2e-16 ***
+    ## gaweeks        27.047      1.718   15.74   <2e-16 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 333.2 on 4339 degrees of freedom
+    ## Multiple R-squared:  0.5769, Adjusted R-squared:  0.5767 
+    ## F-statistic:  2958 on 2 and 4339 DF,  p-value: < 2.2e-16
+
+``` r
+# Mqodel 2: Head circumference, length, sex, and all interactions
+model2 <- lm(bwt ~ bhead + blength + babysex + bhead * blength + bhead * babysex + blength * babysex, data = data)
+summary(model2)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = bwt ~ bhead + blength + babysex + bhead * blength + 
+    ##     bhead * babysex + blength * babysex, data = data)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -1133.8  -189.7    -7.2   178.8  2721.8 
+    ## 
+    ## Coefficients:
+    ##                       Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)         -3508.3263   820.5298  -4.276 1.95e-05 ***
+    ## bhead                  66.8435    25.4407   2.627  0.00863 ** 
+    ## blength                35.7217    17.4013   2.053  0.04015 *  
+    ## babysexmale          -259.9785   197.9105  -1.314  0.18904    
+    ## bhead:blength           1.5608     0.5269   2.962  0.00307 ** 
+    ## bhead:babysexmale      12.6620     7.0450   1.797  0.07236 .  
+    ## blength:babysexmale    -4.2107     4.1691  -1.010  0.31257    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 288.1 on 4335 degrees of freedom
+    ## Multiple R-squared:  0.6839, Adjusted R-squared:  0.6835 
+    ## F-statistic:  1563 on 6 and 4335 DF,  p-value: < 2.2e-16
+
+``` r
+# The original Model
+cv_model <- crossv_mc(data, 100)
+errors <- map2_dbl(cv_model$train, cv_model$test, ~{
+  model1_fit <- lm(bwt ~ babysex + blength + delwt + fincome + frace + gaweeks + malform + menarche + mheight + momage + mrace + parity + pnumlbw + pnumsga + ppbmi + ppwt + smoken + wtgain, data = .x)
+  rmse(model1_fit, .y)
+})
+
+mean(errors)
+```
+
+    ## [1] 313.6564
+
+``` r
+# model 1
+cv_model <- crossv_mc(data, 100)
+errors <- map2_dbl(cv_model$train, cv_model$test, ~{
+  model1_fit <- lm(bwt ~ blength + gaweeks, data = .x)
+  rmse(model1_fit, .y)
+})
+
+mean(errors)
+```
+
+    ## [1] 330.7784
+
+``` r
+# model 2
+cv_model <- crossv_mc(data, 100)
+errors <- map2_dbl(cv_model$train, cv_model$test, ~{
+  model2_fit <- lm(bwt ~ bhead + blength + babysex + bhead * blength + bhead * babysex + blength * babysex, data = .x)
+  rmse(model2_fit, .y)
+})
+
+mean(errors)
+```
+
+    ## [1] 290.3128
+
+According to the cross validated prediction error, we see that the error
+for our original model is 313.6564, the error for model1 is largest with
+330.7, and the error for model2 is smallest with 290.3128. Therefore,
+according to these data, we can say that the model using head
+circumference, length, sex, and all interactions (including the
+three-way interaction) is the best model with smallest error.

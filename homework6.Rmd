@@ -6,10 +6,11 @@ output: github_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 library(tidyverse)
 library(boot)
 library(ggplot2)
+library(modelr)
 ```
 
 ## Problem 1
@@ -219,3 +220,83 @@ The 95% confidence interval for log(beta1*beta2) is (-9.055, -4.536). The 95% co
 ## Problem 3
 
 
+### Load and clean data
+```{r}
+data <- read_csv('data/birthweight.csv', na = c("", "NA", "Unknown"))
+data <- data |>
+  mutate(babysex = recode(babysex, "1" = "male", "2" = "female"),
+         frace = recode(frace, "1" = "White", "2" = "Black", "3" = "Asian", 
+                        "4" = "Puerto Rico", "8" = "Others", "9" = "Unknown"),
+         malform = recode(malform, "0" = "absent", "1" = "present"),
+         mrace = recode(mrace,"1" = "White", "2" = "Black", "3" = "Asian", 
+                        "4" = "Puerto Rico", "8" = "Others")
+         )
+head(data)
+
+```
+Propose a regression model for birthweight. This model may be based on a hypothesized structure for the factors that underly birthweight, on a data-driven model-building process, or a combination of the two. Describe your modeling process and show a plot of model residuals against fitted values – use add_predictions and add_residuals in making this plot.
+
+```{r}
+model <- lm(bwt ~ babysex + blength + delwt + fincome + frace + gaweeks + malform + menarche + mheight + momage + mrace + parity + pnumlbw + pnumsga + ppbmi + ppwt + smoken + wtgain, data = data)
+
+summary(model)
+
+data |>
+  add_predictions(model) |>
+  add_residuals(model) |>
+  ggplot(aes(x = pred, y = resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "blue") +
+  labs(x = "Fitted Values", y = "Residuals", title = "Residuals vs Fitted Plot for Birthweight Model")
+```
+According to the model summary, we can see that a few factors are significant with p value less than 0.05, such as smoken, parity, ppwt, and gaweek. However, there are also a lot of variables that are non significant with p value greater than 0.05, such as frace, malform, menarche, mheight, momage, mrace, ppbmi. There are also some factors producing NA values, such as wtgain, pnumlbw, and pnumsga.
+The very small p-value here suggests that the model is statistically significant.
+
+
+
+```{r}
+set.seed(123)
+# Model 1: Length at birth and gestational age
+model1 <- lm(bwt ~ blength + gaweeks, data = data)
+summary(model1)
+# Mqodel 2: Head circumference, length, sex, and all interactions
+model2 <- lm(bwt ~ bhead + blength + babysex + bhead * blength + bhead * babysex + blength * babysex, data = data)
+summary(model2)
+
+# The original Model
+cv_model <- crossv_mc(data, 100)
+errors <- map2_dbl(cv_model$train, cv_model$test, ~{
+  model1_fit <- lm(bwt ~ babysex + blength + delwt + fincome + frace + gaweeks + malform + menarche + mheight + momage + mrace + parity + pnumlbw + pnumsga + ppbmi + ppwt + smoken + wtgain, data = .x)
+  rmse(model1_fit, .y)
+})
+
+mean(errors)
+
+
+
+
+# model 1
+cv_model <- crossv_mc(data, 100)
+errors <- map2_dbl(cv_model$train, cv_model$test, ~{
+  model1_fit <- lm(bwt ~ blength + gaweeks, data = .x)
+  rmse(model1_fit, .y)
+})
+
+mean(errors)
+
+# model 2
+cv_model <- crossv_mc(data, 100)
+errors <- map2_dbl(cv_model$train, cv_model$test, ~{
+  model2_fit <- lm(bwt ~ bhead + blength + babysex + bhead * blength + bhead * babysex + blength * babysex, data = .x)
+  rmse(model2_fit, .y)
+})
+
+mean(errors)
+
+
+
+```
+
+
+
+According to the cross validated prediction error, we see that the error for our original model is 313.6564,  the error for  model1 is largest with 330.7, and the error for model2 is smallest with 290.3128. Therefore, according to these data, we can say that the model using head circumference, length, sex, and all interactions (including the three-way interaction) is the best model with smallest error. 
