@@ -160,18 +160,18 @@ results
 ```
 
     ## # A tibble: 5,000 × 6
-    ##    strap_number r_square `(Intercept)`  tmin       prcp log_product
-    ##           <int>    <dbl>         <dbl> <dbl>      <dbl>       <dbl>
-    ##  1            1    0.907          8.05  1.01 -0.00194        NaN   
-    ##  2            2    0.926          8.25  1.01 -0.00709        NaN   
-    ##  3            3    0.921          8.01  1.02 -0.00437        NaN   
-    ##  4            4    0.917          8.22  1.01  0.00238         -6.03
-    ##  5            5    0.906          8.00  1.01  0.00492         -5.30
-    ##  6            6    0.922          7.96  1.02 -0.0000308      NaN   
-    ##  7            7    0.912          8.16  1.01 -0.00260        NaN   
-    ##  8            8    0.910          8.13  1.03 -0.00761        NaN   
-    ##  9            9    0.933          7.51  1.05 -0.00554        NaN   
-    ## 10           10    0.914          8.16  1.01 -0.00113        NaN   
+    ##    strap_number r_square `(Intercept)`  tmin      prcp log_product
+    ##           <int>    <dbl>         <dbl> <dbl>     <dbl>       <dbl>
+    ##  1            1    0.899          8.20 0.989  0.00732        -4.93
+    ##  2            2    0.923          8.01 1.01   0.000531       -7.53
+    ##  3            3    0.916          7.99 1.03  -0.00372       NaN   
+    ##  4            4    0.926          7.79 1.02   0.00323        -5.71
+    ##  5            5    0.922          7.87 1.02  -0.00254       NaN   
+    ##  6            6    0.911          8.02 0.998  0.00462        -5.38
+    ##  7            7    0.909          8.36 0.998 -0.00771       NaN   
+    ##  8            8    0.936          8.02 1.03  -0.00654       NaN   
+    ##  9            9    0.910          8.17 1.01  -0.00287       NaN   
+    ## 10           10    0.922          7.95 1.01   0.00272        -5.90
     ## # ℹ 4,990 more rows
 
 ### Plots of the distributions
@@ -260,7 +260,7 @@ percentage_na_log_product <- (num_na_logprod / total_observations)
 percentage_na_log_product
 ```
 
-    ## [1] 0.6612
+    ## [1] 0.6742
 
 The percentage of NA in the log(beta1\*beta2) is 0.672.
 
@@ -278,7 +278,7 @@ results |>
     ## # A tibble: 1 × 2
     ##   log_lower log_upper
     ##       <dbl>     <dbl>
-    ## 1     -8.85     -4.50
+    ## 1     -8.88     -4.58
 
 ``` r
 # Confidence Interval for r_squared
@@ -292,7 +292,7 @@ results |>
     ## # A tibble: 1 × 2
     ##   r_squared_lower r_squared_upper
     ##             <dbl>           <dbl>
-    ## 1           0.889           0.940
+    ## 1           0.889           0.941
 
 The 95% confidence interval for log(beta1\*beta2) is (-9.055, -4.536).
 The 95% confidence interval for r square is (0.888, 0.940).
@@ -384,24 +384,67 @@ summary(model)
     ## Multiple R-squared:  0.6248, Adjusted R-squared:  0.623 
     ## F-statistic: 359.7 on 20 and 4321 DF,  p-value: < 2.2e-16
 
+According to the model summary, we can see that a few factors are
+significant with p value less than 0.05, such as smoken, parity, ppwt,
+and gaweek. However, there are also a lot of variables that are non
+significant with p value greater than 0.05, such as frace, malform,
+menarche, mheight, momage, mrace, ppbmi. There are also some factors
+producing NA values, such as wtgain, pnumlbw, and pnumsga.
+
+Based on this result, we can drop some variables with NA values such as
+wtgain, pnumlbw, and pnumsga and some variables that have large p values
+to get our model.
+
+``` r
+model_ori <- lm(bwt ~ babysex + blength + delwt + fincome + gaweeks + mheight + parity + ppwt + smoken, data = data)
+
+
+summary(model_ori)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = bwt ~ babysex + blength + delwt + fincome + gaweeks + 
+    ##     mheight + parity + ppwt + smoken, data = data)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -1612.0  -205.0   -10.3   198.3  3963.7 
+    ## 
+    ## Coefficients:
+    ##               Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept) -4724.0411   145.2280 -32.528  < 2e-16 ***
+    ## babysexmale    20.0298     9.8797   2.027 0.042686 *  
+    ## blength       120.1891     2.0041  59.971  < 2e-16 ***
+    ## delwt           5.0184     0.4619  10.864  < 2e-16 ***
+    ## fincome         1.6877     0.1918   8.800  < 2e-16 ***
+    ## gaweeks        25.2978     1.6858  15.006  < 2e-16 ***
+    ## mheight         7.3041     2.0710   3.527 0.000425 ***
+    ## parity        135.6330    47.7291   2.842 0.004508 ** 
+    ## ppwt           -3.2569     0.5052  -6.447 1.27e-10 ***
+    ## smoken         -3.7540     0.6679  -5.620 2.02e-08 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 322.4 on 4332 degrees of freedom
+    ## Multiple R-squared:  0.6047, Adjusted R-squared:  0.6038 
+    ## F-statistic: 736.2 on 9 and 4332 DF,  p-value: < 2.2e-16
+
 ``` r
 data |>
-  add_predictions(model) |>
-  add_residuals(model) |>
+  add_predictions(model_ori) |>
+  add_residuals(model_ori) |>
   ggplot(aes(x = pred, y = resid)) +
   geom_point() +
   geom_hline(yintercept = 0, linetype = "dashed", color = "blue") +
   labs(x = "Fitted Values", y = "Residuals", title = "Residuals vs Fitted Plot for Birthweight Model")
 ```
 
-![](homework6_files/figure-gfm/unnamed-chunk-8-1.png)<!-- --> According
-to the model summary, we can see that a few factors are significant with
-p value less than 0.05, such as smoken, parity, ppwt, and gaweek.
-However, there are also a lot of variables that are non significant with
-p value greater than 0.05, such as frace, malform, menarche, mheight,
-momage, mrace, ppbmi. There are also some factors producing NA values,
-such as wtgain, pnumlbw, and pnumsga. The very small p-value here
-suggests that the model is statistically significant.
+![](homework6_files/figure-gfm/unnamed-chunk-9-1.png)<!-- --> After
+optimizing the model based on the very rough model, we can see that all
+variables are statistically significant in this new model with p values
+less than 0.05. The very small p-value here suggests that the model is
+statistically significant.
 
 ``` r
 set.seed(123)

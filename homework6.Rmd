@@ -241,15 +241,26 @@ model <- lm(bwt ~ babysex + blength + delwt + fincome + frace + gaweeks + malfor
 
 summary(model)
 
+```
+According to the model summary, we can see that a few factors are significant with p value less than 0.05, such as smoken, parity, ppwt, and gaweek. However, there are also a lot of variables that are non significant with p value greater than 0.05, such as frace, malform, menarche, mheight, momage, mrace, ppbmi. There are also some factors producing NA values, such as wtgain, pnumlbw, and pnumsga.
+
+Based on this result, we can drop some variables with NA values such as wtgain, pnumlbw, and pnumsga and some variables that have large p values to get our model. 
+
+```{r}
+model_ori <- lm(bwt ~ babysex + blength + delwt + fincome + gaweeks + mheight + parity + ppwt + smoken, data = data)
+
+
+summary(model_ori)
+
 data |>
-  add_predictions(model) |>
-  add_residuals(model) |>
+  add_predictions(model_ori) |>
+  add_residuals(model_ori) |>
   ggplot(aes(x = pred, y = resid)) +
   geom_point() +
   geom_hline(yintercept = 0, linetype = "dashed", color = "blue") +
   labs(x = "Fitted Values", y = "Residuals", title = "Residuals vs Fitted Plot for Birthweight Model")
 ```
-According to the model summary, we can see that a few factors are significant with p value less than 0.05, such as smoken, parity, ppwt, and gaweek. However, there are also a lot of variables that are non significant with p value greater than 0.05, such as frace, malform, menarche, mheight, momage, mrace, ppbmi. There are also some factors producing NA values, such as wtgain, pnumlbw, and pnumsga.
+After optimizing the model based on the very rough model, we can see that all variables are statistically significant in this new model with p values less than 0.05.
 The very small p-value here suggests that the model is statistically significant.
 
 
